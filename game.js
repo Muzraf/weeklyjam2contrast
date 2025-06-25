@@ -7,18 +7,38 @@ let clicked = false;
 let timer = 0;
 let transition = 0;
 let state = 0;
+let tostate = -1;
+let mx = 0;
+let my = 0;
+
+let render_rect = {height: 720, s: 1, width: 1280, x: 0, y: 0};
 
 function resizecanvas() {
-    if ((16 * window.innerHeight / 9) < window.innerWidth) {
+/*    if ((16 * window.innerHeight / 9) < window.innerWidth) {
         canvas.width = 16 * window.innerHeight / 9;
         canvas.height = window.innerHeight;
     } else {
         canvas.width = window.innerWidth;
         canvas.height = 9 * window.innerWidth / 16;
     }
+*/
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    if ((16 * canvas.height / 9) < canvas.width) {
+        render_rect.width = 16 * canvas.height / 9;
+        render_rect.height = canvas.height;
+    } else {
+        render_rect.width = canvas.width;
+        render_rect.height = 9 * canvas.width / 16;
+    }
+
+    render_rect.x = canvas.width / 2 - render_rect.width / 2;
+    render_rect.y = canvas.height / 2 - render_rect.height / 2;
+    render_rect.s = render_rect.height / 720;
 }
 
-function onclick() {
+function togglefullscreen() {
     if (!document.fullscreenElement) {
         if (canvas.requestFullscreen) {
             canvas.requestFullscreen();
@@ -31,22 +51,62 @@ function onclick() {
             canvas.msRequestFullscreen();
         }
         resizecanvas();
-        fullscreenchanged = true;
+    } else {
+        //exitfullscreen
+        if (document.exitFullscreen) {
+            document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) { /* Safari */
+            document.webkitExitFullscreen();
+        } else if (document.msExitFullscreen) { /* IE11 */
+            document.msExitFullscreen();
+        }
+        resizecanvas();
     }
-    if (clicked) {
-        clicked = false;
+}
+
+function onclick(event) {
+    mx = event.clientX;
+    my = event.clientY;
+    if ((mx > (canvas.width - rs(128))) && //
+        (my > (canvas.height - rs(128)))) {
+        togglefullscreen();
     } else {
         clicked = true;
     }
 }
 
+function rx(x) {
+    return render_rect.x + rs(x);
+}
+
+function ry(y) {
+    return render_rect.y + rs(y);
+}
+
+function rs(s) {
+    return s * render_rect.s;
+}
+function dostart() {
+    if (clicked) {
+        tostate = 1;
+        timer = 0;
+        transition = 1;
+    }
+}
+function drawstart() {
+    ctx.fillText("Start", rx(10), ry(32));
+    ctx.fillText("Click to Play", rx(10), ry(64));
+}
 function gameloop(ts) {
     if (!lt) {
         lt = ts;
     }
     const dt = (ts - lt) / 1000;
     lt = ts;
+
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+
     if (transition > 0) {
         transition = transition - dt;
     } else {
@@ -54,21 +114,16 @@ function gameloop(ts) {
     }
 
     ctx.fillStyle = "white";
-    ctx.font = "20px Arial";
+    ctx.font = `${rs(32)}px Arial`;
     if (state === 0) {
-        // start
-        if (timer > 1) {
-            state = 1;
-            timer = 0;
-            transition = 1;
-        } else {
-            ctx.fillText("Start", 10, 30);
-
+        if (transition < 0) {
+            dostart();
         }
+        drawstart();
     } else if (state === 1) {
     // play
         if (timer > 1) {
-            state = 2;
+            tostate = 2;
             timer = 0;
             transition = 1;
         } else {
@@ -77,7 +132,7 @@ function gameloop(ts) {
     } else {
         // end
         if ((timer > 1) && clicked) {
-            state = 0;
+            tostate = 0;
             timer = 0;
             transition = 1;
         } else {
@@ -92,23 +147,41 @@ function gameloop(ts) {
     if (transition > 0) {
         ctx.fillStyle = "white";
         if (transition > 0.5) {
-            ctx.fillRect(0, 0, canvas.width, 2 * canvas.height * (1 - transition));
+            ctx.fillRect(0, 0, canvas.width, //
+                2 * canvas.height * (1 - transition));
         } else {
-            ctx.fillRect(0, canvas.height * (1 - 2 * transition), canvas.width, canvas.height * 2 * transition);
+            if (tostate > -1) {
+                state = tostate;
+                tostate = -1;
+            }
+            ctx.fillRect(0, canvas.height * (1 - 2 * transition), //
+                canvas.width, canvas.height * 2 * transition);
         }
     }
 
-
+    // render_rect boundary
     ctx.strokeStyle = "red";
     ctx.beginPath();
-    ctx.rect(0, 0, canvas.width, canvas.height);
+    ctx.rect(rx(0), ry(0), rs(1280), rs(720));
     ctx.stroke();
 
+    // mouse pointer temperory
+    ctx.fillRect(mx, my, 10, 10);
 
+    // fullsceeen btn
+    ctx.beginPath();
+    ctx.fillRect(canvas.width - rs(128), //
+        canvas.height - rs(128), rs(128), rs(128));
+    //ctx.stroke();
 
-    window.requestAnimationFrame(gameloop);
+    ctx.fillText(`${canvas.width}, ${canvas.height}, \
+      ${render_rect.width}, ${render_rect.height},  \
+      ${render_rect.s} ${mx}, ${my}`, 0, canvas.height);
+
 
     clicked = false;
+    window.requestAnimationFrame(gameloop);
+
 }
 
 window.addEventListener("resize", resizecanvas);
