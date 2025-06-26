@@ -227,8 +227,8 @@ function addsplash(x, y, type = 0, dx = 10, dy = 10, t = 1, s = 1, i = 0) {
     }
   } else if (type === 1) {
     i = addsplash(x, y, 2, dx, dy, t, 2 * s, i);
-    i = addsplash(x, y, 2, 0.5 * dx, 0.5 * dy, t, s, i);
-    i = addsplash(x, y, 0, dx * 0.5, dy * 0.5, t, s, i);
+    i = addsplash(x, y, 2, dx * 0.5, dy * 0.5, t, s, i);
+    i = addsplash(x, y, 0, dx * 0.25, dy * 0.25, t, 0.5*s, i);
   } else if (type === 2) {
     while (j < 4) {
       i = addparticle(x, y, dx * c[j], dy * d[j], t, s, i);
