@@ -28,7 +28,7 @@ let parst = new Array(256).fill(0);
 let parsalive = new Array(256).fill(0);
 */
 
-let block_arr = new Array(12 * 9).fill(0);
+let block_arr = new Array(16 * 9).fill(0);
 let moving_block_arr = Array.from({length: 5}, () => ({alive: false, arr: [0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0], x: 0, y: 0 })); //jslint-ignore-line
 
 let bullet_speed = 1440;
@@ -129,6 +129,43 @@ function collision(x1, y1, w1, h1, x2, y2, w2, h2) {
 }
 
 
+function checktetris() {
+  let i = 0;
+  let j = 0;
+  let nope = false;
+  i = 0;
+  while (i < 16) {
+    nope = false;
+    j = 0;
+    while (j < 9) {
+      if (block_arr[i * 9 + j] === 0) {
+        nope = true;
+        break;
+      }
+      j += 1;
+    }
+    if (nope === false) {
+      j = i * 9;
+      while (j < 15 * 9) {
+        block_arr[j] = block_arr[j + 9];
+        j += 1;
+      }
+      j = 15 * 9;
+      while (j < 9) {
+        block_arr[j] = 0;
+      }
+      j = 0;
+      while (j < 9) {
+        addsplash(rx(i * moving_block_size + moving_block_size / 2), //
+          ry(j * moving_block_size + moving_block_size / 2), 1);
+        j += 1;
+      }
+    }
+    i += 1;
+  }
+}
+
+
 
 function dostart() {
   if (clicked) {
@@ -144,7 +181,9 @@ function drawstart() {
 
 function doplay() {
   let i = 0;
+  let j = 0;
   let k = 0;
+  let l = 0;
   //  if (clicked && (mx > canvas.width / 2) && (my < canvas.height / 2)) {
   if (player_alive === false) {
     tostate = 2;
@@ -173,7 +212,6 @@ function doplay() {
     k = 0;
     while (k < 5) {
       if (bullet_arr[k].alive) {
-
         bullet_arr[k].x += bullet_speed * dt;
         if (bullet_arr[k].x > game_width) {
           cur_bullet_count -= 1;
@@ -183,37 +221,50 @@ function doplay() {
           let done = false;
           i = 0;
           while (i < 5) {
-            if (collision(bullet_arr[k].x, bullet_arr[k].y, //
-              bullet_size, bullet_size, //
-              moving_block_arr[i].x * moving_block_size, //
-              moving_block_arr[i].y * moving_block_size, //
-              moving_block_size * 4, moving_block_size * 4)) {
-              let j = 0;
-              while (j < 16) {
-                if (moving_block_arr[i].arr[j] === 1) {
-                  if (collision(bullet_arr[k].x, //
-                    bullet_arr[k].y, bullet_size, bullet_size, //
-                    moving_block_size * (Math.floor(j / 4) + //
-                      moving_block_arr[i].x), //
-                    moving_block_size * ((j % 4) + moving_block_arr[i].y), //
-                    moving_block_size, moving_block_size)) {
-                    cur_bullet_count -= 1;
-                    bullet_arr[k].alive = false;
-                    addsplash(rx(bullet_arr[k].x - bullet_size), //
-                      ry(bullet_arr[k].y), 1);
-                    moving_block_arr[i].arr[j] = 0;
-                    addsplash(rx(bullet_arr[k].x), ry(bullet_arr[k].y), 4);
-                    done = true;
+            if (moving_block_arr[i].alive === true) {
+              if (collision(bullet_arr[k].x, bullet_arr[k].y, //
+                bullet_size, bullet_size, //
+                moving_block_arr[i].x * moving_block_size, //
+                moving_block_arr[i].y * moving_block_size, //
+                moving_block_size * 4, moving_block_size * 4)) {
+                j = 0;
+                while (j < 16) {
+                  if (moving_block_arr[i].arr[j] === 1) {
+                    if (collision(bullet_arr[k].x, //
+                      bullet_arr[k].y, bullet_size, bullet_size, //
+                      moving_block_size * (Math.floor(j / 4) + //
+                        moving_block_arr[i].x), //
+                      moving_block_size * ((j % 4) + moving_block_arr[i].y), //
+                      moving_block_size, moving_block_size)) {
+                      cur_bullet_count -= 1;
+                      bullet_arr[k].alive = false;
+                      addsplash(rx(bullet_arr[k].x - bullet_size), //
+                        ry(bullet_arr[k].y), 1);
+                      moving_block_arr[i].arr[j] = 0;
+                      addsplash(rx(bullet_arr[k].x), ry(bullet_arr[k].y), 4);
+
+                      l = 0;
+                      while (l < 16) {
+                        if (moving_block_arr[i].arr[l]) {
+                          break;
+                        }
+                        l += 1;
+                      }
+                      if (l === 16) {
+                        moving_block_arr[i].alive = false;
+                      }
+                      done = true;
+                    }
                   }
+                  if (done) {
+                    break;
+                  }
+                  j += 1;
                 }
-                if (done) {
-                  break;
-                }
-                j += 1;
               }
-            }
-            if (done) {
-              break;
+              if (done) {
+                break;
+              }
             }
             i += 1;
           }
@@ -242,11 +293,59 @@ function doplay() {
       while (i < 5) {
         if (moving_block_arr[i].alive) {
           moving_block_arr[i].x -= 1;
-          if (moving_block_arr[i].x < -4) {
+
+          if ((moving_block_arr[i].x < 1) && (moving_block_arr[i].x > -4)) {
+            l = 0;
+            while (l < 4) {
+              if (moving_block_arr[i].arr[l - //
+                4 * moving_block_arr[i].x] === 1) {
+                moving_block_arr[i].alive = false;
+
+                k = 0;
+                while (k < 16) {
+                  if (moving_block_arr[i].arr[k] === 1) {
+                    block_arr[(moving_block_arr[i].x * 9)//
+                      + moving_block_arr[i].y + (k % 4) + //
+                      Math.floor(k / 4) * 9] = 1;
+                  }
+                  k += 1;
+                }
+                checktetris();
+                break;
+              }
+              l += 1;
+            }
+
+          } else if (moving_block_arr[i].x < -3) {
+            console.log("see this line");
             moving_block_arr[i].alive = false;
+          } else {
+            //collision
+            j = 0;
+            while (j < 16) {
+              if (moving_block_arr[i].arr[j] === 1) {
+                if (block_arr[(moving_block_arr[i].x * 9) //
+                  + moving_block_arr[i].y + (j % 4) + //
+                  Math.floor(j / 4) * 9] === 1) {
+                  // collision
+                  moving_block_arr[i].alive = false;
+                  k = 0;
+                  while (k < 16) {
+                    if (moving_block_arr[i].arr[k] === 1) {
+                      block_arr[((moving_block_arr[i].x + 1) * 9) + //
+                        moving_block_arr[i].y + (k % 4) + //
+                        Math.floor(k / 4) * 9] = 1;
+                    }
+                    k += 1;
+                  }
+                  checktetris();
+                  break;
+                }
+              }
+              j += 1;
+            }
           }
         }
-        // then check collision with world
         i += 1;
       }
 
@@ -263,6 +362,27 @@ function doplay() {
 function drawplay() {
   ctx.fillText("Play", 10, 30);
   let i = 0;
+
+  ctx.fillStyle = "#333";
+  ctx.strokeStyle = "black";
+
+  i = 0;
+  while (i < 16 * 9) {
+    if (block_arr[i] === 1) {
+      ctx.fillRect(rx(moving_block_size * Math.floor(i / 9)),//
+        ry(moving_block_size * (i % 9)), rs(moving_block_size),//
+        rs(moving_block_size));
+      ctx.beginPath();
+      ctx.rect(rx(moving_block_size * Math.floor(i / 9)),//
+        ry(moving_block_size * (i % 9)), rs(moving_block_size),//
+        rs(moving_block_size));
+      ctx.stroke();
+    }
+    i += 1;
+  }
+  i = 0;
+  ctx.fillStyle = "white";
+  ctx.strokeStyle = "black";
   while (i < 5) {
     if (moving_block_arr[i].alive) {
       let j = 0;
@@ -273,7 +393,6 @@ function drawplay() {
             ry(moving_block_size * (moving_block_arr[i].y + //
               (j % 4))), rs(moving_block_size), rs(moving_block_size));
           ctx.beginPath();
-          ctx.strokeStyle = "black";
           ctx.rect(rx(moving_block_size * (moving_block_arr[i].x + //
             Math.floor(j / 4))), //
             ry(moving_block_size * (moving_block_arr[i].y + //
