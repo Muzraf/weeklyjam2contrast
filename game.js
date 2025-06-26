@@ -31,6 +31,7 @@ let parsalive = new Array(256).fill(0);
 let block_arr = new Array(16 * 9).fill(0);
 let moving_block_arr = Array.from({length: 5}, () => ({alive: false, arr: [0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0], x: 0, y: 0 })); //jslint-ignore-line
 
+let player_dead_timer = 0;
 let bullet_speed = 1440;
 let player_speed = 240;
 let player_x = 10;
@@ -50,6 +51,27 @@ let blockspawntimer = 0;
 let game_height = 720;
 let game_width = 16 * game_height / 9;
 let gravity = 0.1;
+
+
+let victory = [
+  "Feynmann !!!",
+  "Do you wanna shout Feynmann?",
+  "Tommy from Vice city says hi"
+];
+
+let defeat = [
+  "A warrior approches a town",
+  "He saw people",
+  "running around like mad.",
+  "He caught a little boy",
+  "He asked him",
+  "what is happening",
+  "the boy said",
+  "that the king is ill"
+];
+
+let score = 0;
+let defeat_i = 0;
 
 function resizecanvas() {
   canvas.width = window.innerWidth;
@@ -145,6 +167,7 @@ function checktetris() {
       j += 1;
     }
     if (nope === false) {
+      score += 1;
       j = i * 9;
       while (j < 15 * 9) {
         block_arr[j] = block_arr[j + 9];
@@ -163,15 +186,42 @@ function checktetris() {
     }
     i += 1;
   }
+  j = 0;
+  while (j < 9) {
+    if (block_arr[15 * 9 + j] === 1) {
+      break;
+    }
+    j += 1;
+  }
+  if (j < 9) {
+    player_alive = false;
+  }
 }
 
 
 
 function dostart() {
+  let i = 0;
   if (clicked) {
     tostate = 1;
     timer = 0;
     transition = 1;
+
+    player_y = 0;
+    i = 0;
+    while (i < 16 * 9) {
+      block_arr[i] = 0;
+      i += 1;
+    }
+    i = 0;
+    while (i < 5) {
+      moving_block_arr[i].alive = false;
+      i += 1;
+    }
+
+    player_alive = true;
+    score = 0;
+
   }
 }
 function drawstart() {
@@ -186,9 +236,20 @@ function doplay() {
   let l = 0;
   //  if (clicked && (mx > canvas.width / 2) && (my < canvas.height / 2)) {
   if (player_alive === false) {
-    tostate = 2;
-    timer = 0;
-    transition = 1;
+    if (player_dead_timer === 0) {
+      addsplash(rx(player_x + player_size / 2), ry(player_y + //
+        player_size / 2), 1);
+    }
+
+    player_dead_timer += dt;
+
+    if (player_dead_timer > 2) {
+      tostate = 2;
+      timer = 0;
+      transition = 1;
+      player_dead_timer = 0;
+    }
+
   } else {
     if (clicked && cur_bullet_count < 5) {
       i = 0;
@@ -292,7 +353,6 @@ function doplay() {
       i = 0;
       while (i < 5) {
         if (moving_block_arr[i].alive) {
-          moving_block_arr[i].x -= 1;
 
           if ((moving_block_arr[i].x < 1) && (moving_block_arr[i].x > -4)) {
             l = 0;
@@ -315,11 +375,15 @@ function doplay() {
               }
               l += 1;
             }
+            if (l === 4) {
+              moving_block_arr[i].x -= 1;
+            }
 
           } else if (moving_block_arr[i].x < -3) {
             console.log("see this line");
             moving_block_arr[i].alive = false;
           } else {
+            moving_block_arr[i].x -= 1;
             //collision
             j = 0;
             while (j < 16) {
@@ -421,22 +485,28 @@ function drawplay() {
 }
 
 function doyellow() {
-  if ((timer > 1) && clicked) {
+  if (clicked) {
     tostate = 0;
     timer = 0;
     transition = 1;
+    if (score === 0) {
+      defeat_i;
+    }
   }
 }
 
 
 function drawyellow() {
-  ctx.fillText("yellow", 10, 30);
-  ctx.fillText(`${timer}`, 10, 60);
-  if (timer > 1) {
-    ctx.fillText("Click To Continue", 10, 90);
+  if (score === 0) {
+    ctx.fillText("Little story (bit by bit)", rx(10), ry(32));
+    ctx.fillText(defeat[defeat_i], rx(10), ry(64));
+  } else {
+    ctx.fillText(victory[score % 3], rx(10), ry(32));
   }
-}
 
+  ctx.fillText("Click to Continue", rx(10), //
+    ry(Math.sin(timer * 2 * 3.14159) * 32 + 600));
+}
 function addparticle(x, y, dx, dy, t = 1, s = 1, i = 0) {
   while (i < 256) {
     if (particle_arr[i].alive === false) {
