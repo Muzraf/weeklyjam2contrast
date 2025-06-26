@@ -54,8 +54,8 @@ let gravity = 0.1;
 
 
 let victory = [
-  "Feynmann !!!",
   "Do you wanna shout Feynmann?",
+  "Feynmann !!!",
   "Tommy from Vice city says hi"
 ];
 
