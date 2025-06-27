@@ -1,6 +1,6 @@
 /*jslint browser*/
 /*jslint indent2*/
-/*global console*/
+/*global console, Image, FontFace, Audio*/
 const canvas = document.getElementById("game_canvas");
 const ctx = canvas.getContext("2d");
 let lt = 0;
@@ -29,7 +29,7 @@ let parsalive = new Array(256).fill(0);
 */
 
 let block_arr = new Array(16 * 9).fill(0);
-let moving_block_arr = Array.from({length: 5}, () => ({alive: false, arr: [0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0], x: 0, y: 0 })); //jslint-ignore-line
+let moving_block_arr = Array.from({length: 10}, () => ({alive: false, arr: [0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0], x: 0, y: 0 })); //jslint-ignore-line
 
 let player_dead_timer = 0;
 let bullet_speed = 1440;
@@ -40,38 +40,62 @@ let player_alive = true;
 let bullet_arr = Array.from({length: 5}, () => ({alive: false, x: 0, y: 0}));
 let cur_bullet_count = 0;
 
-let player_size = 32;
+let player_size = 64;
 let particle_size = 8;
 let bullet_size = 16;
 let moving_block_size = 80;
 
 let blocktimer = 0;
+let blocktimer_th = 1;
 let blockspawntimer = 0;
 
 let game_height = 720;
 let game_width = 16 * game_height / 9;
 let gravity = 0.1;
 
+let tetris_score = 0;
+let shmup_score = 0;
 
-let victory = [
-  "Do you wanna shout Feynmann?",
-  "Feynmann !!!",
-  "Tommy from Vice city says hi"
-];
+let title_img = new Image();
+title_img.src = "assets/title.png";
+let continue_img = new Image();
+continue_img.src = "assets/continue_full.png";
+let ship_img = new Image();
+ship_img.src = "assets/ship.png";
 
-let defeat = [
-  "A warrior approches a town",
-  "He saw people",
-  "running around like mad.",
-  "He caught a little boy",
-  "He asked him",
-  "what is happening",
-  "the boy said",
-  "that the king is ill"
-];
+let click_sound = new Audio("assets/game-start-317318.mp3");
+click_sound.preload = true;
 
-let score = 0;
-let defeat_i = 0;
+let bg_music = new Audio("assets/wrong-place-129242.mp3");
+bg_music.loop = true;
+bg_music.volume = 0.05;
+
+let gameover_sound = new Audio("assets/game-over-arcade-6435.mp3");
+let shoot_sound = new Audio("assets/game-character-140506.mp3");
+shoot_sound.volume = 0.1;
+
+let shot_1_sound = new Audio("assets/dragon-hurt-47161.mp3");
+shot_1_sound.volume = 0.01;
+
+let shot_2_sound = new Audio("assets/scream01.mp3");
+let shot_3_sound = new Audio("assets/screaming.mp3");
+
+let tetris_sound = new Audio("assets/animated-cartoon-explosion-impact-352744.mp3"); //jslint-ignore-line
+
+async function loadfont() {
+  let font = new FontFace(
+    "Myfont",
+    "url(assets/ShadowsIntoLight-Regular.ttf)",
+    {
+      style: "normal",
+      weight: 400
+    }
+  );
+  await font.load();
+  document.fonts.add(font);
+}
+
+loadfont();
 
 function resizecanvas() {
   canvas.width = window.innerWidth;
@@ -167,7 +191,8 @@ function checktetris() {
       j += 1;
     }
     if (nope === false) {
-      score += 1;
+      tetris_score += 1;
+      tetris_sound.cloneNode().play();
       j = i * 9;
       while (j < 15 * 9) {
         block_arr[j] = block_arr[j + 9];
@@ -184,7 +209,9 @@ function checktetris() {
         j += 1;
       }
     }
-    i += 1;
+    if (nope === true) {
+      i += 1;
+    }
   }
   j = 0;
   while (j < 9) {
@@ -218,15 +245,26 @@ function dostart() {
       moving_block_arr[i].alive = false;
       i += 1;
     }
-
     player_alive = true;
-    score = 0;
+    shmup_score = 0;
+    tetris_score = 0;
+    blocktimer_th = 1;
+    blocktimer = 0;
+    blockspawntimer = 0;
 
+    ctx.textAlign = "right";
+
+    click_sound.pause();
+    click_sound.currentTime = 0;
+    click_sound.play();
+
+    bg_music.play();
   }
 }
+
 function drawstart() {
-  ctx.fillText("Start", rx(10), ry(32));
-  ctx.fillText("Click to Play", rx(10), ry(64));
+  ctx.drawImage(title_img, rx(0), ry(0), rs(1280), rs(720));
+  drawcontinue();
 }
 
 function doplay() {
@@ -234,11 +272,18 @@ function doplay() {
   let j = 0;
   let k = 0;
   let l = 0;
+  let mmm;
   //  if (clicked && (mx > canvas.width / 2) && (my < canvas.height / 2)) {
   if (player_alive === false) {
     if (player_dead_timer === 0) {
       addsplash(rx(player_x + player_size / 2), ry(player_y + //
         player_size / 2), 1);
+
+      shot_2_sound.cloneNode().play();
+
+      gameover_sound.pause();
+      gameover_sound.currentTime = 0;
+      gameover_sound.play();
     }
 
     player_dead_timer += dt;
@@ -248,6 +293,7 @@ function doplay() {
       timer = 0;
       transition = 1;
       player_dead_timer = 0;
+      ctx.textAlign = "center";
     }
 
   } else {
@@ -262,12 +308,14 @@ function doplay() {
       if (i < 5) {
         cur_bullet_count += 1;
         //player_speed *= -1;
-        shake = shake_default_time;
         bullet_arr[i].alive = true;
         bullet_arr[i].x = player_x;
         bullet_arr[i].y = player_y + player_size / 2 - bullet_size / 2;
         addsplash(rx(bullet_arr[i].x + player_size),//
           ry(bullet_arr[i].y), 0, 5, 5);
+        shoot_sound.pause();
+        shoot_sound.currentTime = 0;
+        shoot_sound.play();
       }
     }
     k = 0;
@@ -297,6 +345,11 @@ function doplay() {
                         moving_block_arr[i].x), //
                       moving_block_size * ((j % 4) + moving_block_arr[i].y), //
                       moving_block_size, moving_block_size)) {
+                      mmm = shot_1_sound.cloneNode();
+                      mmm.volume = 0.1;
+                      mmm.play();
+                      shmup_score += 1;
+                      shake = shake_default_time;
                       cur_bullet_count -= 1;
                       bullet_arr[k].alive = false;
                       addsplash(rx(bullet_arr[k].x - bullet_size), //
@@ -312,6 +365,15 @@ function doplay() {
                         l += 1;
                       }
                       if (l === 16) {
+                        if (Math.random() < 0.5) {
+                          mmm = shot_2_sound.cloneNode();
+                          mmm.volume = 0.07;
+                          mmm.play();
+                        } else {
+                          mmm = shot_3_sound.cloneNode();
+                          mmm.volume = 0.07;
+                          mmm.play();
+                        }
                         moving_block_arr[i].alive = false;
                       }
                       done = true;
@@ -347,8 +409,11 @@ function doplay() {
      */
 
     blocktimer += dt;
-    if (blocktimer > 1) {
-
+    if (blocktimer > blocktimer_th) {
+      blocktimer_th = 1 - timer / 600;
+      if (blocktimer_th < 0.5) {
+        blocktimer_th = 0.5;
+      }
       //block moves and collides with world
       i = 0;
       while (i < 5) {
@@ -359,8 +424,9 @@ function doplay() {
             while (l < 4) {
               if (moving_block_arr[i].arr[l - //
                 4 * moving_block_arr[i].x] === 1) {
+                click_sound.cloneNode().play();
                 moving_block_arr[i].alive = false;
-
+                shake = shake_default_time;
                 k = 0;
                 while (k < 16) {
                   if (moving_block_arr[i].arr[k] === 1) {
@@ -377,6 +443,33 @@ function doplay() {
             }
             if (l === 4) {
               moving_block_arr[i].x -= 1;
+              // collison temp
+              j = 0;
+              while (j < 16) {
+                if (moving_block_arr[i].arr[j] === 1) {
+                  if (block_arr[(moving_block_arr[i].x * 9) //
+                    + moving_block_arr[i].y + (j % 4) + //
+                    Math.floor(j / 4) * 9] === 1) {
+                    // collision
+                    click_sound.cloneNode().play();
+                    shake = shake_default_time;
+                    moving_block_arr[i].alive = false;
+                    k = 0;
+                    while (k < 16) {
+                      if (moving_block_arr[i].arr[k] === 1) {
+                        block_arr[((moving_block_arr[i].x + 1) * 9) + //
+                          moving_block_arr[i].y + (k % 4) + //
+                          Math.floor(k / 4) * 9] = 1;
+                      }
+                      k += 1;
+                    }
+                    checktetris();
+                    break;
+                  }
+                }
+                j += 1;
+              }
+
             }
 
           } else if (moving_block_arr[i].x < -3) {
@@ -392,6 +485,8 @@ function doplay() {
                   + moving_block_arr[i].y + (j % 4) + //
                   Math.floor(j / 4) * 9] === 1) {
                   // collision
+                  click_sound.cloneNode().play();
+                  shake = shake_default_time;
                   moving_block_arr[i].alive = false;
                   k = 0;
                   while (k < 16) {
@@ -416,7 +511,7 @@ function doplay() {
       blocktimer = 0;
     }
     blockspawntimer += dt;
-    if (blockspawntimer > 5) {
+    if (blockspawntimer > blocktimer_th * 5) {
       blockspawntimer = 0;
       spawnrandomblock();
     }
@@ -480,8 +575,13 @@ function drawplay() {
   }
 
   if (player_alive) {
-    ctx.fillRect(rx(player_x), ry(player_y), rs(player_size), rs(player_size));
+    ctx.drawImage(ship_img, rx(player_x), ry(player_y), //
+      rs(player_size), rs(player_size));
   }
+
+  ctx.textAlign = "right";
+  ctx.fillText(`Total: ${shmup_score + tetris_score * 100}, S: ${shmup_score}, T: ${tetris_score}`, //jslint-ignore-line
+    rx(1280 - 16), ry(64 + 16));
 }
 
 function doyellow() {
@@ -489,23 +589,24 @@ function doyellow() {
     tostate = 0;
     timer = 0;
     transition = 1;
-    if (score === 0) {
-      defeat_i;
-    }
+
+    click_sound.pause();
+    click_sound.currentTime = 0;
+    click_sound.play();
   }
 }
 
-
+function drawcontinue() {
+  ctx.drawImage(continue_img, rx(0), Math.sin(timer * 3.14159) //
+      * rs(16) + ry(16), rs(1280), rs(720));
+}
 function drawyellow() {
-  if (score === 0) {
-    ctx.fillText("Little story (bit by bit)", rx(10), ry(32));
-    ctx.fillText(defeat[defeat_i], rx(10), ry(64));
-  } else {
-    ctx.fillText(victory[score % 3], rx(10), ry(32));
-  }
-
-  ctx.fillText("Click to Continue", rx(10), //
-    ry(Math.sin(timer * 2 * 3.14159) * 32 + 600));
+  ctx.textAlign = "center";
+  ctx.fillText(`Total Score: ${shmup_score + tetris_score * 100}`, //
+    rx(1280 / 2), ry(720 / 4));
+  ctx.fillText("shmup score + (tetris score * 100)", rx(1280 / 2), //
+    ry(720 / 4 + 64));
+  drawcontinue();
 }
 function addparticle(x, y, dx, dy, t = 1, s = 1, i = 0) {
   while (i < 256) {
@@ -653,13 +754,13 @@ function gameloop(ts) {
     timer = timer + dt;
   }
 
-  if (shake > 0) {
+  if (shake >= 0) {
     shake -= dt;
     //render_rect.x = shake_rec_x + rs(8) * Math.sin((1 -shake) * 8* 3.14159);
     render_rect.y = shake_rec_y + rs(8) * Math.sin((1 - shake) * 8 * 3.14159);
   }
   ctx.fillStyle = "white";
-  ctx.font = `${rs(32)}px Arial`;
+  ctx.font = `${rs(64)}px Myfont`;
   if (state === 0) {
     if (timer > 0) {
       dostart();
@@ -709,13 +810,15 @@ function gameloop(ts) {
   ctx.beginPath();
   ctx.rect(canvas.width - rs(128), //
     canvas.height - rs(128), rs(128), rs(128));
+  ctx.textAlign = "left";
+  ctx.fillText("F11", canvas.width + 8 - rs(128), canvas.height - 8);
   ctx.stroke();
 
   // temperory debuggibg
-  ctx.fillText(`${canvas.width}, ${canvas.height}, \
+  /*ctx.fillText(`${canvas.width}, ${canvas.height}, \
       ${render_rect.width}, ${render_rect.height},  \
       ${render_rect.s} ${mx}, ${my}`, 0, canvas.height);
-
+      */
   // particles
   let i = 0;
   while (i < 256) {
@@ -762,4 +865,5 @@ window.addEventListener("resize", resizecanvas);
 window.addEventListener("click", onclick);
 resizecanvas();
 transition = 1;
+ctx.textAlign = "center";
 window.requestAnimationFrame(gameloop);
