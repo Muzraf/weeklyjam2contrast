@@ -1,10 +1,11 @@
 /*jslint browser*/
 /*jslint indent2*/
-/*global console, Image, FontFace, Audio*/
+/*global dostart, pl_synth_init, songbuf,
+  AudioContext, console, Image, FontFace, Audio*/
+
 const canvas = document.getElementById("game_canvas");
 const ctx = canvas.getContext("2d");
 let lt = 0;
-let fullscreenchanged = false;
 let clicked = false;
 let timer = 0;
 let transition = 0;
@@ -14,20 +15,12 @@ let mx = 0;
 let my = 0;
 let dt = 0;
 let shake = 0;
-let shake_rec_x = 0;
 let shake_rec_y = 0;
 let shake_default_time = 0.2;
 let render_rect = {height: 720, s: 1, width: 1280, x: 0, y: 0};
 let particle_arr = Array.from({length: 256}, () => ({alive: false, dx: 0, dy: 0, s: 0, t: 0, x: 0, y: 0})); //jslint-ignore-line
-/*
-let parsx = new Array(256).fill(0);
-let parsy = new Array(256).fill(0);
-let parsdx = new Array(256).fill(0);
-let parsdy = new Array(256).fill(0);
-let parst = new Array(256).fill(0);
-let parsalive = new Array(256).fill(0);
-*/
 
+let hey = true;
 let block_arr = new Array(16 * 9).fill(0);
 let moving_block_arr = Array.from({length: 10}, () => ({alive: false, arr: [0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0], x: 0, y: 0 })); //jslint-ignore-line
 
@@ -74,7 +67,7 @@ let gameover_sound = new Audio("assets/game-over-arcade-6435.mp3");
 let shoot_sound = new Audio("assets/game-character-140506.mp3");
 shoot_sound.volume = 0.1;
 
-let shot_1_sound = new Audio("assets/dragon-hurt-47161.mp3");
+let shot_1_sound = new Audio("assets/glass-bottle-breaking-351297.mp3");
 shot_1_sound.volume = 0.01;
 
 let shot_2_sound = new Audio("assets/scream01.mp3");
@@ -113,7 +106,6 @@ function resizecanvas() {
   render_rect.y = canvas.height / 2 - render_rect.height / 2;
   render_rect.s = render_rect.height / game_height;
 
-  shake_rec_x = render_rect.x;
   shake_rec_y = render_rect.y;
 }
 
@@ -227,6 +219,7 @@ function checktetris() {
 
 
 
+/*jslint-disable*/
 function dostart() {
   let i = 0;
   if (clicked) {
@@ -258,9 +251,25 @@ function dostart() {
     click_sound.currentTime = 0;
     click_sound.play();
 
-    bg_music.play();
+    if (hey) {
+      const audioctx = new AudioContext();
+      pl_synth_wasm_init(audioctx, (synth) => {
+        let songbuf = synth.song([8481,[[[7,,,,121,1,7,,,,91,3,,100,1212,5513,100,,6,19,3,121,6,21,,1,1,29],[1,2,1,2,1,2,,,1,2,1,2],[[138,145,138,150,138,145,138,150,138,145,138,150,138,145,138,150,136,145,138,148,136,145,138,148,136,145,138,148,136,145,138,148],[135,145,138,147,135,145,138,147,135,145,138,147,135,145,138,147,135,143,138,146,135,143,138,146,135,143,138,146,135,143,138,146]]],[[7,,,,192,1,6,,9,,192,1,25,137,1111,16157,124,1,982,89,6,25,6,77,,1,3,69],[,,1,2,1,2,3,3,3,3,3,3],[[138,138,,138,140,,141,,,,,,,,,,136,136,,136,140,,141],[135,135,,135,140,,141,,,,,,,,,,135,135,,135,140,,141,,140,140],[145,,,,145,143,145,150,,148,,146,,143,,,,145,,,,145,143,145,139,,139,,,142,142]]],[[7,,,1,255,,7,,,1,255,,,100,,3636,174,2,500,254,,27],[1,1,1,1,,,1,1,1,1,1,1],[[135,135,,135,139,,135,135,135,,135,139,,135,135,135,,135,139,,135,135,135,,135,139,,135,135,135,,135]]],[[8,,,1,200,,7,,,,211,3,210,50,200,6800,153,4,11025,254,6,32,5,61,,1,4,60],[1,1,1,1,,,1,1,1,1,1,1],[[,,,,140,,,,,,,,140,,,,,,,,140,,,,,,,,140]]]]]); //jslint-ignore-line
+        hey = false;
+        let source = audioctx.createBufferSource();
+        source.buffer = songbuf;
+        let gain_node = audioctx.createGain();
+        gain_node.gain.value = 0.1;
+        gain_node.connect(audioctx.destination);
+        source.connect(gain_node);
+        source.loop = true;
+        source.start();
+      });
+      //      bg_music.play();
+    }
   }
 }
+/*jslint-enable*/
 
 function drawstart() {
   ctx.drawImage(title_img, rx(0), ry(0), rs(1280), rs(720));
@@ -273,6 +282,8 @@ function doplay() {
   let k = 0;
   let l = 0;
   let mmm;
+
+
   //  if (clicked && (mx > canvas.width / 2) && (my < canvas.height / 2)) {
   if (player_alive === false) {
     if (player_dead_timer === 0) {
@@ -326,6 +337,10 @@ function doplay() {
           cur_bullet_count -= 1;
           bullet_arr[k].alive = false;
           addsplash(rx(bullet_arr[k].x - bullet_size), ry(bullet_arr[k].y), 1);
+          mmm = shot_1_sound.cloneNode();
+          mmm.volume = 0.1;
+          mmm.play();
+
         } else {
           let done = false;
           i = 0;
