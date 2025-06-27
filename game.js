@@ -250,7 +250,7 @@ function dostart() {
     tetris_score = 0;
     blocktimer_th = 1;
     blocktimer = 0;
-    blockspawntimer = 0;
+    blockspawntimer = 4;
 
     ctx.textAlign = "right";
 
@@ -519,7 +519,6 @@ function doplay() {
 }
 
 function drawplay() {
-  ctx.fillText("Play", 10, 30);
   let i = 0;
 
   ctx.fillStyle = "#333";
@@ -754,10 +753,12 @@ function gameloop(ts) {
     timer = timer + dt;
   }
 
-  if (shake >= 0) {
+  if (shake > 0) {
     shake -= dt;
     //render_rect.x = shake_rec_x + rs(8) * Math.sin((1 -shake) * 8* 3.14159);
     render_rect.y = shake_rec_y + rs(8) * Math.sin((1 - shake) * 8 * 3.14159);
+  } else {
+    render_rect.y = shake_rec_y;
   }
   ctx.fillStyle = "white";
   ctx.font = `${rs(64)}px Myfont`;
