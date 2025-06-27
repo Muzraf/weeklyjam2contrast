@@ -59,9 +59,6 @@ ship_img.src = "assets/ship.png";
 let click_sound = new Audio("assets/game-start-317318.mp3");
 click_sound.preload = true;
 
-let bg_music = new Audio("assets/wrong-place-129242.mp3");
-bg_music.loop = true;
-bg_music.volume = 0.05;
 
 let gameover_sound = new Audio("assets/game-over-arcade-6435.mp3");
 let shoot_sound = new Audio("assets/game-character-140506.mp3");
@@ -259,7 +256,7 @@ function dostart() {
         let source = audioctx.createBufferSource();
         source.buffer = songbuf;
         let gain_node = audioctx.createGain();
-        gain_node.gain.value = 0.1;
+        gain_node.gain.value = 0.2;
         gain_node.connect(audioctx.destination);
         source.connect(gain_node);
         source.loop = true;
