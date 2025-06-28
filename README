@@ -1,0 +1,22 @@
+known bugs:
+- sometimes the blocks collides reach through
+
+todo:
+- score system
+- rotated blocks
+.
+
+- fonts
+(SIL OFL) ShadowIntoLight - Kimberly Geswein (kimberlygeswein.com)
+
+- audio
+(Pixabay) game-character-140506.mp3 - Universfield
+(Pixabay) wrong-place-129242.mp3 - (jurji) SoundReality
+(Pixabay) game-over-arcade-6435.mp3 - freesound_community
+(Pixabay) game-start-317318.mp3 - FoxBoyTails
+(Pixabay) animated-cartoon-explosion-impact-352744.mp3 - Universfield
+(Pixabay) glass-bottle-breaking-351297.mp3 - Universfield
+(Freesound) Screaming_male_painII.mp3[https://freesound.org/s/220289/] - GabrielaUPF
+(Freesound) Scream 01 [https://freesound.org/s/219858/]- adriancalzon
+pl_synth_wasm.min.js - Phoboslab [https://github.com/phoboslab/pl_synth/]
+
